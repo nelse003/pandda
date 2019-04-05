@@ -213,6 +213,23 @@ class RefmacSelection(_Selection):
     name        = 'atom {}'
 
 
+class BusterSelection(_Selection):
+
+    _join_and =
+    _join_or  =
+    _sep_and  =
+    _sep_or   =
+
+    remove = []
+
+    model       =
+    chain       =
+    resseq      =
+    icode       =
+    resname     =
+    altloc      =
+    name        =
+
 class PhenixSelection(_Selection):
 
 
@@ -269,11 +286,15 @@ class _Formatter:
 
     @classmethod
     def format_distance_restraints(cls, restraint_list):
-        return cls._distance_restraint_format.format(cls.selection.join_custom(strings=restraint_list, join=cls._distance_restraint_format_join))
+        return cls._distance_restraint_format.format(
+            cls.selection.join_custom(strings=restraint_list,
+                                      join=cls._distance_restraint_format_join))
 
     @classmethod
     def format_occupancy_restraints(cls, restraint_list):
-        return cls._occupancy_restraint_format.format(cls.selection.join_custom(strings=restraint_list, join=cls._occupancy_restraint_format_join))
+        return cls._occupancy_restraint_format.format(
+            cls.selection.join_custom(strings=restraint_list,
+                                      join=cls._occupancy_restraint_format_join))
 
     @classmethod
     def make_occupancy_restraints(cls, list_of_lists_of_groups, group_completeness=None, idx=1):
@@ -319,6 +340,101 @@ class RefmacFormatter(_Formatter):
     @classmethod
     def occupancy_group(cls, objects, idx):
         return '\n'.join(sorted([cls._occupancy_group.format(idx, cls.selection.format(o)) for o in objects]))
+
+
+class BusterFormatter(_Formatter):
+    """
+    Produce formatting for Buster:
+
+    Notes
+    ------
+
+    Refmac distance restraint:
+
+    exte dist first chain A resi  110 alte A atom  N   second chain A resi  110 alte C atom  N   value 0.0 sigma 0.02 type 1
+
+    In buster is:
+
+    NOTE BUSTER_DISTANCE =0.0        0.02       A|110:N.A     A|110:N.C
+
+    # TODO Implement formatting for s1 and s2
+
+    {}|{}:{}.{}
+
+    chain|residue_id:Atom.altloc
+
+    somewhere for formatting s1 and s1
+
+    Occupancy refinement:
+
+    NOTE BUSTER_RESET_CONSTANT_COMBINE
+
+    This command will Reset the refinement state;
+    by default occupancies are all fixed to their initial values,
+    NOTE BUSTER_RESET_CONSTANT_COMBINE turns this off.
+    It also turns off any grouping of positions or B-factors,
+    not sure currently what this implies.
+
+    NOTE BUSTER_SET AltOccAll = Empty
+
+    This defines an empty set of atoms to add all altlocs
+    that are being refined to.
+
+    NOTE BUSTER_SET OccZeroH = OccZero & Hydrogen
+
+    This sets the occupancy of hydrogens to zero
+
+    NOTE BUSTER_SET FixOcc = All
+
+    This is a set of all atoms
+
+    NOTE BUSTER_SET FixOcc = FixOcc \ AltOccAll
+
+    This removes the atoms that have been added to the "AltOccAll" set
+    from the set of all atoms
+
+    NOTE BUSTER_CONSTANT OCC FixOcc
+
+    This then fixes the occupancy of those atoms,
+    which are not in the "AltOccAll" set
+
+    """
+    # This instantiates a selection object
+    # TODO implement selection object
+    selection = BusterSelection
+
+    # This is the header line for the whole section of ditance restraints.
+    # currently empty
+    _distance_restraint_format = "{}"
+    # join between restraints (new line currently)
+    _distance_restraint_format_join = "\n"
+    # individual restraint lines
+    _distance_restraint = "NOTE BUSTER_DISTANCE = {}    {}    {}    {}"
+
+    @classmethod
+    def make_distance_restraints(cls, atm_1, atm_2, value, sigma, add=True):
+        s1 = cls.selection.format(atm_1)
+        s2 = cls.selection.format(atm_2)
+        if not add:  raise Exception('Not implemented')
+        return cls._distance_restraint.format(cls, value, sigma, s1, s2)
+
+    _occupancy_restraint_format = """
+NOTE BUSTER_RESET_CONSTANT_COMBINE
+NOTE BUSTER_SET AltOccAll = Empty
+NOTE BUSTER_SET OccZeroH = OccZero & Hydrogen
+{}
+NOTE BUSTER_SET FixOcc = All
+NOTE BUSTER_SET FixOcc = FixOcc \\ AltOccAll
+NOTE BUSTER_CONSTANT OCC FixOcc
+"""
+    _occupancy_restraint_format_join = "\n"
+    _occupancy_restraint =
+    #Todo formatting selection for format A|282:*.D or chain|resid:*.Altloc
+    _occupancy_group = """
+NOTE BUSTER_SET AltOcc{} =  \{{}\}
+NOTE BUSTER_SET AltOcc{} = AltOcc{} \\ OccZeroH
+NOTE BUSTER_SET AltOccAll  = AltOccAll  + AltOcc{} 
+"""
 
 
 class PhenixFormatter(_Formatter):

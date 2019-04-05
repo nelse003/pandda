@@ -247,6 +247,9 @@ def make_duplication_restraints(params, input_hierarchy, log=None):
             log(rest_block[:1000]+'...'*(len(rest_block)>1000))
             log('')
 
+    if params.output.buster:
+
+
 def make_local_restraints(params, input_hierarchy, log=None):
     """Create local restraints for a hierarchy"""
 
