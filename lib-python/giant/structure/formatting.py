@@ -469,7 +469,7 @@ class BusterFormatter(_Formatter):
     # join between restraints (new line currently)
     _distance_restraint_format_join = "\n"
     # individual restraint lines
-    _distance_restraint = "NOTE BUSTER_DISTANCE = {0}    {1}    {2}    {3}"
+    _distance_restraint = "NOTE BUSTER_DISTANCE ={0}    {1}    {2}    {3}"
 
     @classmethod
     def make_distance_restraint(cls, atm_1, atm_2, value, sigma, add=True):
@@ -482,7 +482,7 @@ class BusterFormatter(_Formatter):
 """
 NOTE BUSTER_RESET_CONSTANT_COMBINE
 NOTE BUSTER_SET AltOccAll = Empty
-NOTE BUSTER_SET OccZeroH = OccZero & Hydroen
+NOTE BUSTER_SET OccZeroH = OccZero & Hydrogen
 {}
 NOTE BUSTER_SET FixOcc = All
 NOTE BUSTER_SET FixOcc = FixOcc \\ AltOccAll
