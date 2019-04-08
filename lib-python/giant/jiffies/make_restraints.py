@@ -13,6 +13,7 @@ from giant.structure.restraints.conformers import find_duplicated_conformers_and
 from giant.structure.restraints.external import find_atoms_around_alternate_conformers
 from giant.structure.restraints.occupancy import overlapping_occupancy_groups, simple_occupancy_groups
 from giant.structure.formatting import RefmacFormatter, PhenixFormatter
+from giant.structure.formatting import BusterFormatter
 
 ############################################################################
 
@@ -45,6 +46,9 @@ output_phil = """
         .type = path
     refmac = 'multi-state-restraints.refmac.params'
         .help = 'Output restraints file for refmac'
+        .type = path
+    buster = 'params.gelly'
+        .help = 'Output restraints file for buster'
         .type = path
     log = 'multi-state-restraints.log'
         .help = 'log file name'
@@ -224,13 +228,18 @@ def make_duplication_restraints(params, input_hierarchy, log=None):
         return
 
     # Concatenate atoms into one list
+    # list of tuples, with two iotbx_pdb_hierarchy_ext.atom_with_labels objects
     atom_pairs = []; [atom_pairs.extend(l) for l in dup_groups]
 
     log('Found {} duplicated conformers consisting of {} atoms'.format(len(dup_groups), len(atom_pairs)))
     log('')
 
     if params.output.refmac:
-        restraint_list = [RefmacFormatter.make_distance_restraint(atm_1=a1, atm_2=a2, value=0.0, sigma=params.duplicates.sigma_xyz) for a1,a2 in atom_pairs]
+        restraint_list = [RefmacFormatter.make_distance_restraint(
+            atm_1=a1, atm_2=a2, value=0.0, sigma=params.duplicates.sigma_xyz)
+            for a1,a2
+            in atom_pairs]
+
         rest_block = RefmacFormatter.format_distance_restraints(restraint_list=restraint_list)
         with open(params.output.refmac, 'a') as fh: fh.write(rest_block+'\n')
         if params.settings.verbose:
@@ -239,7 +248,11 @@ def make_duplication_restraints(params, input_hierarchy, log=None):
             log('')
 
     if params.output.phenix:
-        restraint_list = [PhenixFormatter.make_distance_restraint(atm_1=a1, atm_2=a2, value=0.0, sigma=params.duplicates.sigma_xyz) for a1,a2 in atom_pairs]
+        restraint_list = [PhenixFormatter.make_distance_restraint(
+            atm_1=a1, atm_2=a2, value=0.0, sigma=params.duplicates.sigma_xyz)
+            for a1,a2
+            in atom_pairs]
+
         rest_block = PhenixFormatter.format_distance_restraints(restraint_list=restraint_list)
         with open(params.output.phenix, 'a') as fh: fh.write(rest_block+'\n')
         if params.settings.verbose:
@@ -248,7 +261,17 @@ def make_duplication_restraints(params, input_hierarchy, log=None):
             log('')
 
     if params.output.buster:
+        restraint_list = [BusterFormatter.make_distance_restraint(
+            atm_1=a1, atm_2=a2, value=0.0, sigma=params.duplicates.sigma_xyz)
+            for a1,a2
+            in atom_pairs]
 
+        rest_block = BusterFormatter.format_distance_restraints(restraint_list=restraint_list)
+        with open(params.output.buster, 'a') as fh: fh.write(rest_block+'\n')
+        if params.settings.verbose:
+            log.subheading('buster duplicate conformer restraints')
+            log(rest_block[:1000]+'...'*(len(rest_block)>1000))
+            log('')
 
 def make_local_restraints(params, input_hierarchy, log=None):
     """Create local restraints for a hierarchy"""
@@ -260,6 +283,7 @@ def make_local_restraints(params, input_hierarchy, log=None):
     atom_d_pairs = find_atoms_around_alternate_conformers(hierarchy     = input_hierarchy.hierarchy,
                                                           altlocs       = params.local_restraints.altlocs.split(',') if params.local_restraints.altlocs else None,
                                                           dist_cutoff   = params.local_restraints.max_distance)
+
     # Filter the 0-distance restraints
     atom_d_pairs = [(a1,a2,d) for a1,a2,d in atom_d_pairs if d>params.local_restraints.min_distance]
 
@@ -270,7 +294,11 @@ def make_local_restraints(params, input_hierarchy, log=None):
     log('')
 
     if params.output.refmac:
-        restraint_list = [RefmacFormatter.make_distance_restraint(atm_1=a1, atm_2=a2, value=d, sigma=params.local_restraints.sigma_xyz) for a1,a2,d in atom_d_pairs]
+        restraint_list = [RefmacFormatter.make_distance_restraint(
+            atm_1=a1, atm_2=a2, value=d, sigma=params.local_restraints.sigma_xyz)
+            for a1, a2, d
+            in atom_d_pairs]
+
         rest_block = RefmacFormatter.format_distance_restraints(restraint_list=restraint_list)
         with open(params.output.refmac, 'a') as fh: fh.write(rest_block+'\n')
         if params.settings.verbose:
@@ -279,13 +307,20 @@ def make_local_restraints(params, input_hierarchy, log=None):
             log('')
 
     if params.output.phenix:
-        restraint_list = [PhenixFormatter.make_distance_restraint(atm_1=a1, atm_2=a2, value=d, sigma=params.local_restraints.sigma_xyz) for a1,a2,d in atom_d_pairs]
+        restraint_list = [PhenixFormatter.make_distance_restraint(
+            atm_1=a1, atm_2=a2, value=d, sigma=params.local_restraints.sigma_xyz)
+            for a1, a2, d
+            in atom_d_pairs]
+
         rest_block = PhenixFormatter.format_distance_restraints(restraint_list=restraint_list)
         with open(params.output.phenix, 'a') as fh: fh.write(rest_block+'\n')
         if params.settings.verbose:
             log.subheading('phenix duplicate conformer restraints')
             log(rest_block[:1000]+'...'*(len(rest_block)>1000))
             log('')
+
+    if params.output.buster:
+        pass
 
 def make_occupancy_constraints(params, input_hierarchy, log=None):
     """Create occupancy groups for a hierarchy"""
@@ -308,6 +343,7 @@ def make_occupancy_constraints(params, input_hierarchy, log=None):
                                                     complete_groups = params.occupancy.complete_groups,
                                                     exclude_altlocs = params.occupancy.exclude_altlocs.split(',') if params.occupancy.exclude_altlocs else [],
                                                     verbose         = params.settings.verbose)
+
     # Record whether the occupancy groups are complete (occs sum to 1)
     if params.occupancy.complete_groups:
         occupancy_complete = [True]*len(occupancy_groups)
@@ -355,6 +391,19 @@ def make_occupancy_constraints(params, input_hierarchy, log=None):
             log.subheading('phenix occupancy restraints')
             log(rest_block[:1000]+'...'*(len(rest_block)>1000))
             log('')
+
+    if params.output.buster:
+        restraint_list = BusterFormatter.make_occupancy_restraints(
+            list_of_lists_of_groups  = occupancy_groups,
+            group_completeness       = occupancy_complete)
+
+        rest_block = BusterFormatter.format_occupancy_restraints(restraint_list=restraint_list)
+        with open(params.output.buster, 'a') as fh: fh.write(rest_block+'\n')
+        if params.settings.verbose:
+            log.subheading('buster occupancy restraints')
+            log(rest_block[:1000]+'...'*(len(rest_block)>1000))
+            log('')
+
 
 def make_b_factor_restraints(params, input_hierarchy, log=None):
 

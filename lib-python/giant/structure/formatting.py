@@ -14,15 +14,20 @@ class _Selection:
     @classmethod
     def join_or(cls, strings, extra_join=''):
         return (cls._join_or+extra_join).join([cls._sep_or.format(s) for s in strings])
+
+
     @classmethod
     def join_and(cls, strings, extra_join=''):
         return (cls._join_and+extra_join).join([cls._sep_and.format(s) for s in strings])
+
+
     @classmethod
     def join_custom(cls, strings, join):
         if '\n' in join:
             return join.join([s.replace('\n', join) for s in strings])
         else:
             return join.join(strings)
+
 
     @classmethod
     def _format_any_to_list(cls, obj):
@@ -50,31 +55,42 @@ class _Selection:
             raise Exception('Invalid object type provided: {}'.format(type(obj)))
         return s
 
+
     @classmethod
     def _format_mo(cls, obj):
         return [ cls.model.format(obj.id) ]
+
+
     @classmethod
     def _format_ch(cls, obj):
         return cls._format_any_to_list(obj.parent()) + \
                 [ cls.chain.format(obj.id),
-                ]
+                  ]
+
+
     @classmethod
     def _format_rg(cls, obj):
         return cls._format_any_to_list(obj.parent()) + \
                 [ cls.resseq.format(obj.resseq),
                   cls.icode.format(obj.icode),
                 ]
+
+
     @classmethod
     def _format_ag(cls, obj):
         return cls._format_any_to_list(obj.parent()) + \
                 [ cls.resname.format(obj.resname),
                   cls.altloc.format(obj.altloc),
                 ]
+
+
     @classmethod
     def _format_co(cls, obj):
         return cls._format_any_to_list(obj.parent()) + \
                 [ cls.altloc.format(obj.altloc),
                 ]
+
+
     @classmethod
     def _format_re(cls, obj):
         return cls._format_any_to_list(obj.parent()) + \
@@ -82,11 +98,15 @@ class _Selection:
                   cls.resseq.format(obj.resseq),
                   cls.icode.format(obj.icode),
                 ]
+
+
     @classmethod
     def _format_at(cls, obj):
         return cls._format_any_to_list(obj.parent()) + \
                 [ cls.name.format(obj.name),
                 ]
+
+
     @classmethod
     def _format_al(cls, obj):
         return [cls.model.format(obj.model_id),
@@ -97,9 +117,13 @@ class _Selection:
                 cls.altloc.format(obj.altloc),
                 cls.name.format(obj.name),
                ]
+
+
     @classmethod
     def _format_dict(cls, obj_dict):
-        return [ cls.__dict__.get(l).format(obj_dict.get(l)) for l in cls._labels if (l in obj_dict.keys()) ]
+        return [ cls.__dict__.get(l).format(obj_dict.get(l))
+                 for l
+                 in cls._labels if (l in obj_dict.keys()) ]
 
 
 class Labeller(_Selection):
@@ -141,7 +165,7 @@ class GenericSelection(_Selection):
     _sep_and  = '{}'
     _sep_or   = None
 
-    remove = []
+    remove = ['']
 
     model       = '{}'
     chain       = '{}'
@@ -215,20 +239,57 @@ class RefmacSelection(_Selection):
 
 class BusterSelection(_Selection):
 
-    _join_and =
-    _join_or  =
-    _sep_and  =
-    _sep_or   =
+    """
+    Selection syntax for buster
 
-    remove = []
+    Attributes
+    ----------
+    _join_and: ''
+        provides string to join other attributes
+    _sep_and: {}
+        provides formatting seperator,
+        needs to include a curly brace format
 
-    model       =
-    chain       =
-    resseq      =
-    icode       =
-    resname     =
-    altloc      =
-    name        =
+    Notes
+    ------
+    Atoms to be formatted as <chain>|<residue_id>:<atom_type>.<altloc>
+    """
+
+    _join_and = ''
+    _join_or  = None
+    _sep_and  = '{}'
+    _sep_or   = None
+
+    remove = ['resname','model ','resseq','icode','name']
+
+    model       = '{}'
+    chain       = '{}|'
+    resseq      = '{}:'
+    icode       = '{}'
+    resname     = '{}'
+    altloc      = '.{}'
+    name        = '{}'
+
+
+    @classmethod
+    def format(cls, obj):
+        """
+        Override to allow formatting as <chain>|<residue_id>:<atom_type>.<altloc>
+        """
+
+        atm_description = [s.strip(' ') for s in cls._format_any_to_list(obj) if s not in cls.remove]
+        print(atm_description)
+
+        # when obj is an atoms with labels
+        if len(atm_description) == 7:
+            out = cls.join_and([atm_description[1],
+                          atm_description[2],
+                          atm_description[6],
+                          atm_description[5]])
+        else:
+            out = cls.join_and([s for s in cls._format_any_to_list(obj) if s not in cls.remove])
+        return out
+
 
 class PhenixSelection(_Selection):
 
@@ -357,8 +418,6 @@ class BusterFormatter(_Formatter):
 
     NOTE BUSTER_DISTANCE =0.0        0.02       A|110:N.A     A|110:N.C
 
-    # TODO Implement formatting for s1 and s2
-
     {}|{}:{}.{}
 
     chain|residue_id:Atom.altloc
@@ -399,42 +458,65 @@ class BusterFormatter(_Formatter):
     which are not in the "AltOccAll" set
 
     """
+
     # This instantiates a selection object
-    # TODO implement selection object
+    # TODO implement correct selection object
     selection = BusterSelection
 
-    # This is the header line for the whole section of ditance restraints.
+    # This is the header line for the whole section of distance restraints.
     # currently empty
     _distance_restraint_format = "{}"
     # join between restraints (new line currently)
     _distance_restraint_format_join = "\n"
     # individual restraint lines
-    _distance_restraint = "NOTE BUSTER_DISTANCE = {}    {}    {}    {}"
+    _distance_restraint = "NOTE BUSTER_DISTANCE = {0}    {1}    {2}    {3}"
 
     @classmethod
-    def make_distance_restraints(cls, atm_1, atm_2, value, sigma, add=True):
+    def make_distance_restraint(cls, atm_1, atm_2, value, sigma, add=True):
         s1 = cls.selection.format(atm_1)
         s2 = cls.selection.format(atm_2)
         if not add:  raise Exception('Not implemented')
-        return cls._distance_restraint.format(cls, value, sigma, s1, s2)
+        return cls._distance_restraint.format(value, sigma, s1, s2)
 
-    _occupancy_restraint_format = """
+    _occupancy_restraint_format = \
+"""
 NOTE BUSTER_RESET_CONSTANT_COMBINE
 NOTE BUSTER_SET AltOccAll = Empty
-NOTE BUSTER_SET OccZeroH = OccZero & Hydrogen
+NOTE BUSTER_SET OccZeroH = OccZero & Hydroen
 {}
 NOTE BUSTER_SET FixOcc = All
 NOTE BUSTER_SET FixOcc = FixOcc \\ AltOccAll
 NOTE BUSTER_CONSTANT OCC FixOcc
 """
-    _occupancy_restraint_format_join = "\n"
-    _occupancy_restraint =
-    #Todo formatting selection for format A|282:*.D or chain|resid:*.Altloc
-    _occupancy_group = """
-NOTE BUSTER_SET AltOcc{} =  \{{}\}
-NOTE BUSTER_SET AltOcc{} = AltOcc{} \\ OccZeroH
-NOTE BUSTER_SET AltOccAll  = AltOccAll  + AltOcc{} 
+    _occupancy_restraint_join = "\n"
+    _occupancy_restraint_format_join = ""
+
+    # TODO Test with multiple altlocs
+    # TODO This needs to be format as D|1:S2.A E|1:S1.B
+    _occupancy_restraint = "NOTE BUSTER_OCCSUM 1.0 0.005 {} {}"
+
+    #TODO formatting selection for format A|282:*.D or chain|resid:*.Altloc
+    _occupancy_group = \
 """
+NOTE BUSTER_SET AltOcc{0} =  {{{1}}}
+NOTE BUSTER_SET AltOcc{0} = AltOcc{0} \\ OccZeroH
+NOTE BUSTER_SET AltOccAll  = AltOccAll  + AltOcc{0} 
+"""
+
+
+    @classmethod
+    def occupancy_restraint(cls, list_of_groups, complete=True, idx=1):
+        r_list = [cls.occupancy_group(objects=g, idx=idx + i) for i, g in enumerate(list_of_groups)]
+        # TODO How does this work?
+        return cls._occupancy_restraint.format(
+            cls.selection.join_custom(strings=r_list,
+                              join=cls._occupancy_restraint_join),
+                              ''.join(map(str, range(idx, idx + len(list_of_groups)))))
+
+    # TODO How does this work?
+    @classmethod
+    def occupancy_group(cls, objects, idx):
+        return '\n'.join(sorted([cls._occupancy_group.format(idx, cls.selection.format(o)) for o in objects]))
 
 
 class PhenixFormatter(_Formatter):
