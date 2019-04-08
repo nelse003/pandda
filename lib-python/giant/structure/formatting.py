@@ -491,9 +491,11 @@ NOTE BUSTER_CONSTANT OCC FixOcc
     _occupancy_restraint_join = "\n"
     _occupancy_restraint_format_join = ""
 
+    occ_atom = "{}"
+
     # TODO Test with multiple altlocs
     # TODO This needs to be format as D|1:S2.A E|1:S1.B
-    _occupancy_restraint = "NOTE BUSTER_OCCSUM 1.0 0.005 {} {}"
+    _occupancy_restraint = "{0}\nNOTE BUSTER_OCCSUM 1.0 0.005 {1}"
 
     #TODO formatting selection for format A|282:*.D or chain|resid:*.Altloc
     _occupancy_group = \
@@ -503,20 +505,65 @@ NOTE BUSTER_SET AltOcc{0} = AltOcc{0} \\ OccZeroH
 NOTE BUSTER_SET AltOccAll  = AltOccAll  + AltOcc{0} 
 """
 
-
+    # Overwriting to allow use of single
     @classmethod
-    def occupancy_restraint(cls, list_of_groups, complete=True, idx=1):
+    def make_occupancy_restraints(cls,
+                                  list_of_lists_of_groups,
+                                  input_hierarchy,
+                                  group_completeness=None,
+                                  idx=1):
+
+        if group_completeness is None:
+            group_completeness = [False]*len(list_of_lists_of_groups)
+        assert len(group_completeness) == len(list_of_lists_of_groups)
+        r_list = []
+        for list_of_groups, complete in zip(list_of_lists_of_groups, group_completeness):
+            r_list.append(cls.occupancy_restraint(list_of_groups=list_of_groups,
+                                                  input_hierarchy=input_hierarchy,
+                                                  complete=complete,
+                                                  idx=idx))
+            idx += len(list_of_groups)
+        return r_list
+
+    # Logic on selecting a particular atom from an occupancy group
+    # TODO Move atom selection logic away from formatting class
+    @classmethod
+    def occupancy_restraint(cls, list_of_groups, input_hierarchy, complete=True, idx=1):
+
         r_list = [cls.occupancy_group(objects=g, idx=idx + i) for i, g in enumerate(list_of_groups)]
-        # TODO How does this work?
-        return cls._occupancy_restraint.format(
-            cls.selection.join_custom(strings=r_list,
-                              join=cls._occupancy_restraint_join),
-                              ''.join(map(str, range(idx, idx + len(list_of_groups)))))
+
+        # Selects a representative atom from each occupancy group
+        represenstative_atoms = []
+        for group in list_of_groups:
+            residue_info_dict = group[0]
+
+            sel_string = "chain {0} altloc {1} resseq {2} resname {3}".format(
+                residue_info_dict['chain'],
+                residue_info_dict['altloc'],
+                residue_info_dict['resseq'],
+                residue_info_dict['resname'])
+
+            sel_cache = input_hierarchy.hierarchy.atom_selection_cache()
+            sel = sel_cache.selection(sel_string)
+            atoms = input_hierarchy.hierarchy.atoms()
+            sel_atoms = atoms.select(sel)
+            represenstative_atoms.append(sel_atoms[0])
+
+        # Uses formatting on slection object to get correct buster style formatting for atom objects
+        formatted_representative_atom_list =[cls.selection.format(rep_atom)
+                                             for rep_atom
+                                             in represenstative_atoms]
+
+        return cls._occupancy_restraint.format(cls.selection.join_and(strings=r_list),
+                                               cls.selection.join_and(strings=formatted_representative_atom_list,
+                                                                      extra_join='   '))
 
     # TODO How does this work?
     @classmethod
     def occupancy_group(cls, objects, idx):
         return '\n'.join(sorted([cls._occupancy_group.format(idx, cls.selection.format(o)) for o in objects]))
+
+
 
 
 class PhenixFormatter(_Formatter):

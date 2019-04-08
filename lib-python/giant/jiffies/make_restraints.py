@@ -221,7 +221,8 @@ def make_duplication_restraints(params, input_hierarchy, log=None):
             continue
 
         for rg in chn.residue_groups():
-            dup_groups += find_duplicated_conformers_and_generate_atom_pairs(residue_group=rg, rmsd_cutoff=params.duplicates.rmsd_cutoff)
+            dup_groups += find_duplicated_conformers_and_generate_atom_pairs(residue_group=rg,
+                                                                             rmsd_cutoff=params.duplicates.rmsd_cutoff)
 
     if not dup_groups:
         log('No duplicated conformers (no restraints created)')
@@ -395,7 +396,8 @@ def make_occupancy_constraints(params, input_hierarchy, log=None):
     if params.output.buster:
         restraint_list = BusterFormatter.make_occupancy_restraints(
             list_of_lists_of_groups  = occupancy_groups,
-            group_completeness       = occupancy_complete)
+            group_completeness       = occupancy_complete,
+            input_hierarchy = input_hierarchy)
 
         rest_block = BusterFormatter.format_occupancy_restraints(restraint_list=restraint_list)
         with open(params.output.buster, 'a') as fh: fh.write(rest_block+'\n')
