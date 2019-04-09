@@ -290,6 +290,25 @@ class BusterSelection(_Selection):
             out = cls.join_and([s for s in cls._format_any_to_list(obj) if s not in cls.remove])
         return out
 
+    @classmethod
+    def format_wildcard(cls, obj):
+        """
+        Override to allow formatting as <chain>|<residue_id>:*.<altloc>
+        """
+
+        atm_description = [s.strip(' ') for s in cls._format_any_to_list(obj) if s not in cls.remove]
+        print(atm_description)
+
+        # when obj is an atoms with labels
+        if len(atm_description) == 6:
+            out = cls.join_and([atm_description[1],
+                          atm_description[2],
+                          "*",
+                          atm_description[5]])
+        else:
+            out = cls.join_and([s for s in cls._format_any_to_list(obj) if s not in cls.remove])
+        return out
+
 
 class PhenixSelection(_Selection):
 
@@ -422,7 +441,6 @@ class BusterFormatter(_Formatter):
 
     chain|residue_id:Atom.altloc
 
-    somewhere for formatting s1 and s1
 
     Occupancy refinement:
 
@@ -500,10 +518,13 @@ NOTE BUSTER_CONSTANT OCC FixOcc
     #TODO formatting selection for format A|282:*.D or chain|resid:*.Altloc
     _occupancy_group = \
 """
-NOTE BUSTER_SET AltOcc{0} =  {{{1}}}
+NOTE BUSTER_SET AltOcc{0} = AltOcc{0} + {{{1}}}
 NOTE BUSTER_SET AltOcc{0} = AltOcc{0} \\ OccZeroH
 NOTE BUSTER_SET AltOccAll  = AltOccAll  + AltOcc{0} 
 """
+    _start_occ_group = "NOTE BUSTER_SET AltOcc{0} = Empty"
+
+    _occupancy_group_combine = "NOTE BUSTER_COMBINE OCC AltOcc{}\n\n"
 
     # Overwriting to allow use of single
     @classmethod
@@ -530,7 +551,14 @@ NOTE BUSTER_SET AltOccAll  = AltOccAll  + AltOcc{0}
     @classmethod
     def occupancy_restraint(cls, list_of_groups, input_hierarchy, complete=True, idx=1):
 
-        r_list = [cls.occupancy_group(objects=g, idx=idx + i) for i, g in enumerate(list_of_groups)]
+        restraints = []
+        for i, g in enumerate(list_of_groups):
+            restraints.append(cls._start_occ_group.format(idx+i))
+            restraints.append(cls.occupancy_group(objects=g, idx=idx + i))
+            restraints.append(cls._occupancy_group_combine.format(idx +i))
+
+
+        r_list = restraints
 
         # Selects a representative atom from each occupancy group
         represenstative_atoms = []
@@ -558,10 +586,9 @@ NOTE BUSTER_SET AltOccAll  = AltOccAll  + AltOcc{0}
                                                cls.selection.join_and(strings=formatted_representative_atom_list,
                                                                       extra_join='   '))
 
-    # TODO How does this work?
     @classmethod
     def occupancy_group(cls, objects, idx):
-        return '\n'.join(sorted([cls._occupancy_group.format(idx, cls.selection.format(o)) for o in objects]))
+        return '\n'.join(sorted([cls._occupancy_group.format(idx, cls.selection.format_wildcard(o)) for o in objects]))
 
 
 
