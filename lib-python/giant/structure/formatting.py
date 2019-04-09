@@ -278,7 +278,6 @@ class BusterSelection(_Selection):
         """
 
         atm_description = [s.strip(' ') for s in cls._format_any_to_list(obj) if s not in cls.remove]
-        print(atm_description)
 
         # when obj is an atoms with labels
         if len(atm_description) == 7:
@@ -297,7 +296,6 @@ class BusterSelection(_Selection):
         """
 
         atm_description = [s.strip(' ') for s in cls._format_any_to_list(obj) if s not in cls.remove]
-        print(atm_description)
 
         # when obj is an atoms with labels
         if len(atm_description) == 6:
@@ -513,7 +511,7 @@ NOTE BUSTER_CONSTANT OCC FixOcc
 
     # TODO Test with multiple altlocs
     # TODO This needs to be format as D|1:S2.A E|1:S1.B
-    _occupancy_restraint = "{0}\nNOTE BUSTER_OCCSUM 1.0 0.005 {1}"
+    _occupancy_restraint = "{0}\nNOTE BUSTER_OCCSUM 1.0 0.005 {1}\n\n"
 
     #TODO formatting selection for format A|282:*.D or chain|resid:*.Altloc
     _occupancy_group = \
