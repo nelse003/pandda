@@ -57,7 +57,7 @@ output {
         .type = str
 }
 options {
-    program = phenix *refmac
+    program = phenix buster *refmac
         .type = choice
     split_conformations = False
         .help = "Split the output structure into different conformations for modelling."
@@ -159,7 +159,8 @@ def run(params):
         # Command line arguments
         # inputs
         cm.add_command_line_arguments(['-p',params.input.pdb,
-                                       '-m', params.input.mtz])
+                                       '-m', params.input.mtz,
+                                       '-d', out_dir])
 
         if params.input.cif:
             for cif in params.input.cif:
@@ -190,10 +191,15 @@ def run(params):
         log(cm.error)
 
     log.subheading('Post-processing output files')
+
     if params.options.program == "buster":
         log.subheading('Renaming buster output files')
-        shutil.move(src='refine.pdb', dst=output_prefix + '.pdb')
-        shutil.move(src='refine.mtz', dst=output_prefix + '.mtz')
+
+        shutil.move(src=os.path.join(out_dir,'refine.pdb'),
+                    dst=output_prefix + '.pdb')
+
+        shutil.move(src=os.path.join(out_dir,'refine.mtz'),
+                    dst=output_prefix + '.mtz')
 
     # Find output files
     try:
