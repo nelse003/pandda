@@ -140,8 +140,11 @@ def run(params):
     elif params.options.program == 'refmac':
         cm = CommandManager('refmac5')
         # Command line args
-        cm.add_command_line_arguments( ['xyzin', params.input.pdb, 'hklin', params.input.mtz] )
-        cm.add_command_line_arguments( ['xyzout', output_prefix+'.pdb', 'hklout', output_prefix+'.mtz'] )
+        cm.add_command_line_arguments( ['xyzin', params.input.pdb,
+                                        'hklin', params.input.mtz] )
+
+        cm.add_command_line_arguments( ['xyzout', output_prefix+'.pdb',
+                                        'hklout', output_prefix+'.mtz'] )
         if params.input.cif:
             for cif in params.input.cif:
                 cm.add_command_line_arguments( ['libin', cif] )
@@ -150,6 +153,20 @@ def run(params):
             cm.add_standard_input( open(params.input.params).read().split('\n') )
 
         cm.add_standard_input( ['END'] )
+
+    elif params.options.program == "buster":
+        cm = CommandManager('refine')
+        # Command line arguments
+        # inputs
+        cm.add_command_line_arguments(['-p',params.input.pdb,
+                                       '-m', params.input.mtz])
+
+        if params.input.cif:
+            for cif in params.input.cif:
+                cm.add_command_line_arguments( ['-l', cif] )
+
+        if params.input.params:
+            cm.add_standard_input(['-Gelly', params.input.params])
 
     # Pass additional command line arguments?
     if params.input.args:
