@@ -190,6 +190,10 @@ def run(params):
         log(cm.error)
 
     log.subheading('Post-processing output files')
+    if params.options.program == "buster":
+        log.subheading('Renaming buster output files')
+        shutil.move(src='refine.pdb', dst=output_prefix + '.pdb')
+        shutil.move(src='refine.mtz', dst=output_prefix + '.mtz')
 
     # Find output files
     try:
