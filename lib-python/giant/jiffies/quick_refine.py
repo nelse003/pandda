@@ -167,7 +167,7 @@ def run(params):
                 cm.add_command_line_arguments( ['-l', cif] )
 
         if params.input.params:
-            cm.add_standard_input(['-Gelly', params.input.params])
+            cm.add_command_line_arguments(['-Gelly', params.input.params])
 
     # Pass additional command line arguments?
     if params.input.args:
