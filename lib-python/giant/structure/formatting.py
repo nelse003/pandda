@@ -555,7 +555,6 @@ NOTE BUSTER_SET AltOccAll  = AltOccAll  + AltOcc{0}
             restraints.append(cls.occupancy_group(objects=g, idx=idx + i))
             restraints.append(cls._occupancy_group_combine.format(idx +i))
 
-
         r_list = restraints
 
         # Selects a representative atom from each occupancy group
