@@ -1,11 +1,8 @@
 import iotbx.pdb.hierarchy as iotbx_pdbh
 
-
 class _Selection:
 
-
     _labels = ('model','chain','resseq','icode','resname','altloc','name')
-
 
     @classmethod
     def format(cls, obj):
@@ -550,16 +547,10 @@ NOTE BUSTER_SET AltOccAll  = AltOccAll  + AltOcc{0}
     def occupancy_restraint(cls, list_of_groups, input_hierarchy, complete=True, idx=1):
 
         restraints = []
-        for i, g in enumerate(list_of_groups):
-            restraints.append(cls._start_occ_group.format(idx+i))
-            restraints.append(cls.occupancy_group(objects=g, idx=idx + i))
-            restraints.append(cls._occupancy_group_combine.format(idx +i))
-
-        r_list = restraints
+        represenstative_atoms = []
 
         # Selects a representative atom from each occupancy group
-        represenstative_atoms = []
-        for group in list_of_groups:
+        for i, group in enumerate(list_of_groups):
             residue_info_dict = group[0]
 
             sel_string = "chain {0} altloc {1} resseq {2} resname {3}".format(
@@ -574,12 +565,22 @@ NOTE BUSTER_SET AltOccAll  = AltOccAll  + AltOcc{0}
             sel_atoms = atoms.select(sel)
             represenstative_atoms.append(sel_atoms[0])
 
+            # Formatted restraints are added to list of restraints
+            restraints.append(cls._start_occ_group.format(idx+i))
+            restraints.append(cls.occupancy_group(objects=group, idx=idx + i))
+
+            # Buster will fail to run if one tries to combine a group
+            # with only a single atom
+            # only combine when this is not the case
+            if len(sel_atoms) > 1:
+                restraints.append(cls._occupancy_group_combine.format(idx +i))
+
         # Uses formatting on slection object to get correct buster style formatting for atom objects
         formatted_representative_atom_list =[cls.selection.format(rep_atom)
                                              for rep_atom
                                              in represenstative_atoms]
 
-        return cls._occupancy_restraint.format(cls.selection.join_and(strings=r_list),
+        return cls._occupancy_restraint.format(cls.selection.join_and(strings=restraints),
                                                cls.selection.join_and(strings=formatted_representative_atom_list,
                                                                       extra_join='   '))
 
